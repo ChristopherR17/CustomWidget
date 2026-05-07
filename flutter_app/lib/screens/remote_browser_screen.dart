@@ -186,18 +186,20 @@ class _RemoteBrowserScreenState extends State<RemoteBrowserScreen> {
                           itemCount: _entries.length,
                           itemBuilder: (context, index) {
                             final entry = _entries[index];
-                            return ListTile(
-                              leading: Icon(entry.isDirectory ? Icons.folder : entry.isZip ? Icons.folder_zip : Icons.description),
-                              title: Text(entry.name),
-                              subtitle: Text('${entry.permissions} · ${_formatBytes(entry.size)}'),
-                              trailing: Wrap(
-                                children: [
-                                  IconButton(onPressed: () => widget.workspace.download(p.posix.join(_path, entry.name), isDirectory: entry.isDirectory).then((_) => _message('Descàrrega completada')), icon: const Icon(Icons.download)),
-                                  IconButton(onPressed: () => _open(entry), icon: const Icon(Icons.info_outline)),
-                                  IconButton(onPressed: () => _delete(entry), icon: const Icon(Icons.delete_outline)),
-                                ],
-                              ),
+                            return InkWell(
                               onDoubleTap: () => _open(entry),
+                              child: ListTile(
+                                leading: Icon(entry.isDirectory ? Icons.folder : entry.isZip ? Icons.folder_zip : Icons.description),
+                                title: Text(entry.name),
+                                subtitle: Text('${entry.permissions} · ${_formatBytes(entry.size)}'),
+                                trailing: Wrap(
+                                  children: [
+                                    IconButton(onPressed: () => widget.workspace.download(p.posix.join(_path, entry.name), isDirectory: entry.isDirectory).then((_) => _message('Descàrrega completada')), icon: const Icon(Icons.download)),
+                                    IconButton(onPressed: () => _open(entry), icon: const Icon(Icons.info_outline)),
+                                    IconButton(onPressed: () => _delete(entry), icon: const Icon(Icons.delete_outline)),
+                                  ],
+                                ),
+                              ),
                             );
                           },
                         ),

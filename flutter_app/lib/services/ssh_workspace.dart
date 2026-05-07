@@ -90,8 +90,24 @@ class SshWorkspace {
     }
   }
 
+  Future<Directory> _ubuntuDownloadsDirectory() async {
+    final detected = await getDownloadsDirectory();
+    if (detected != null) return detected;
+
+    final home = Platform.environment['HOME'];
+    if (home != null) {
+      final spanish = Directory(p.join(home, 'Descargas'));
+      if (await spanish.exists()) return spanish;
+
+      final english = Directory(p.join(home, 'Downloads'));
+      if (await english.exists()) return english;
+    }
+
+    return getApplicationDocumentsDirectory();
+  }
+
   Future<void> download(String remotePath, {required bool isDirectory}) async {
-    final downloads = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+    final downloads = await _ubuntuDownloadsDirectory();
     if (isDirectory) {
       await _downloadDirectoryAsZip(remotePath, downloads.path);
       return;
@@ -170,7 +186,7 @@ class SshWorkspace {
   }
 
   Future<RemoteServiceState> serviceState(String remotePath) async {
-    final result = await run('cd ${_q(remotePath)} && test -f .remote_service.pid && ps -p "$(cat .remote_service.pid)" -o pid=');
+    final result = await run('cd ${_q(remotePath)} && test -f .remote_service.pid && ps -p "\$(cat .remote_service.pid)" -o pid=');
     return result.trim().isEmpty ? RemoteServiceState.stopped : RemoteServiceState.running;
   }
 
@@ -184,14 +200,14 @@ class SshWorkspace {
   }
 
   String _javaStartCommand() {
-    return 'JAR=$(ls *.jar 2>/dev/null | head -n 1); '
-        'if [ -n "$JAR" ]; then nohup java -jar "$JAR" > remote_service.log 2>&1 & echo \$! > .remote_service.pid; '
+    return 'JAR=\$(ls *.jar 2>/dev/null | head -n 1); '
+        'if [ -n "\$JAR" ]; then nohup java -jar "\$JAR" > remote_service.log 2>&1 & echo \$! > .remote_service.pid; '
         'elif [ -f pom.xml ]; then nohup mvn spring-boot:run > remote_service.log 2>&1 & echo \$! > .remote_service.pid; '
         'else nohup ./gradlew bootRun > remote_service.log 2>&1 & echo \$! > .remote_service.pid; fi';
   }
 
   Future<void> stopService(String remotePath) async {
-    await run('cd ${_q(remotePath)} && if [ -f .remote_service.pid ]; then kill "$(cat .remote_service.pid)" 2>/dev/null || true; rm -f .remote_service.pid; fi');
+    await run('cd ${_q(remotePath)} && if [ -f .remote_service.pid ]; then kill "\$(cat .remote_service.pid)" 2>/dev/null || true; rm -f .remote_service.pid; fi');
   }
 
   Future<void> restartService(String remotePath, ProjectKind kind) async {
