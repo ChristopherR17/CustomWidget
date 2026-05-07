@@ -1,0 +1,12 @@
+{
+  "profiles": [
+    {
+      "id": 1,
+      "alias": "Projecte classe",
+      "host": "ieticloudpro.ieti.cat",
+      "port": 20127,
+      "username": "usuari",
+      "privateKeyName": "id_rsa"
+    }
+  ]
+}
