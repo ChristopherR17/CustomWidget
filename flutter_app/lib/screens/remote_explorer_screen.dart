@@ -19,55 +19,167 @@ class RemoteExplorerScreen extends StatefulWidget {
 
 class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
   void _navigateTo(String path) async {
-    String cleanPath = p.normalize(path);
+    final cleanPath = p.normalize(path);
     selectedRemotePath = cleanPath;
-
     await widget.manager.fetchDirectory(cleanPath);
+    if (mounted) setState(() {});
+  }
 
-    setState(() {});
+  Future<void> _uploadFile() async {
+    final result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      final filePath = result.files.single.path;
+
+      if (filePath != null) {
+        await widget.manager.uploadRemoteFile(filePath, selectedRemotePath);
+        await widget.manager.fetchDirectory(selectedRemotePath);
+
+        if (!mounted) return;
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Archivo subido correctamente')),
+        );
+      }
+    }
+  }
+
+  void _openDetails(int index) {
+    final file = remoteNodes[index];
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RemoteNodeDetailsScreen(
+          manager: widget.manager,
+          file: file,
+        ),
+      ),
+    ).then((_) async {
+      await widget.manager.fetchDirectory(selectedRemotePath);
+      if (mounted) setState(() {});
+    });
+  }
+
+  Widget _nodeRow(int index) {
+    final file = remoteNodes[index];
+    final icon = file.isDirectory ? Icons.folder_rounded : Icons.insert_drive_file_rounded;
+    final iconColor = file.isDirectory ? AppPalette.primary : AppPalette.accent;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      child: ListTile(
+        minVerticalPadding: 14,
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withOpacity(0.12),
+          child: Icon(icon, color: iconColor),
+        ),
+        title: Text(
+          file.name,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: AppPalette.textDark,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        subtitle: Text(
+          file.permissions,
+          style: const TextStyle(
+            color: AppPalette.textMuted,
+            fontFamily: 'monospace',
+          ),
+        ),
+        trailing: IconButton(
+          tooltip: 'Opciones',
+          icon: const Icon(Icons.more_horiz_rounded),
+          onPressed: () => _openDetails(index),
+        ),
+        onTap: () {
+          if (file.isDirectory) {
+            logger.i('Entrando en: ${file.name}');
+
+            if (file.name == '..') {
+              _navigateTo(p.dirname(selectedRemotePath));
+            } else {
+              _navigateTo(p.join(selectedRemotePath, file.name));
+            }
+          } else {
+            _openDetails(index);
+          }
+        },
+        onLongPress: () => _openDetails(index),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppPalette.background,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppPalette.primary,
-        foregroundColor: Colors.white,
-        title: const Text("Explorador remoto"),
-        centerTitle: true,
-      ),
-      body: Column(
+      body: Row(
         children: [
           Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
+            width: 270,
+            height: double.infinity,
+            color: AppPalette.sidebar,
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.folder_open, color: Color(0xFF101820)),
-                const SizedBox(width: 12),
-                Expanded(
+                IconButton.filledTonal(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                const SizedBox(height: 28),
+                const Text(
+                  'Explorador',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ruta actual:',
+                  style: TextStyle(color: Colors.white.withOpacity(0.55)),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.sidebarCard,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Text(
                     selectedRemotePath,
-                    style: const TextStyle(
-                      color: Color(0xFF101820),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppPalette.accent,
+                      foregroundColor: AppPalette.textDark,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    icon: const Icon(Icons.upload_file_rounded),
+                    label: const Text(
+                      'Subir archivo',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    onPressed: _uploadFile,
                   ),
                 ),
               ],
@@ -75,128 +187,43 @@ class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListView.separated(
-                itemCount: remoteNodes.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final file = remoteNodes[index];
-
-                  return Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        if (file.isDirectory) {
-                          logger.i("Entrando en: ${file.name}");
-
-                          if (file.name == "..") {
-                            String parentPath = p.dirname(selectedRemotePath);
-                            _navigateTo(parentPath);
-                          } else {
-                            String newPath = p.join(selectedRemotePath, file.name);
-                            _navigateTo(newPath);
-                          }
-                        }
-                      },
-                      onLongPress: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RemoteNodeDetailsScreen(
-                              manager: widget.manager,
-                              file: file,
-                            ),
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Archivos del servidor',
+                          style: TextStyle(
+                            color: AppPalette.textDark,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
                           ),
-                        ).then((_) {
-                          widget.manager.fetchDirectory(selectedRemotePath);
-                          setState(() {});
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: file.isDirectory
-                                    ? Colors.amber.withOpacity(0.18)
-                                    : Colors.blueAccent.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                file.isDirectory
-                                    ? Icons.folder
-                                    : Icons.insert_drive_file,
-                                color: file.isDirectory
-                                    ? Colors.amber[800]
-                                    : Colors.blueAccent,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                file.name,
-                                style: const TextStyle(
-                                  color: Color(0xFF101820),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              file.permissions,
-                              style: const TextStyle(
-                                color: Colors.black45,
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Icon(
-                              Icons.more_vert,
-                              color: Colors.black38,
-                            ),
-                          ],
                         ),
                       ),
+                      Text(
+                        '${remoteNodes.length} elementos',
+                        style: const TextStyle(
+                          color: AppPalette.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: remoteNodes.length,
+                      itemBuilder: (context, index) => _nodeRow(index),
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppPalette.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.upload),
-        label: const Text("Subir"),
-        onPressed: () async {
-          FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-          if (result != null) {
-            String? filePath = result.files.single.path;
-
-            if (filePath != null) {
-              await widget.manager.uploadRemoteFile(filePath, selectedRemotePath);
-              await widget.manager.fetchDirectory(selectedRemotePath);
-
-              setState(() {});
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Archivo subido correctamente")),
-              );
-            }
-          }
-        },
       ),
     );
   }

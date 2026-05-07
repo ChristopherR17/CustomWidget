@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/host_profile.dart';
 import '../services/host_profile_repository.dart';
 import '../state/remote_session_state.dart';
 import '../theme/app_palette.dart';
@@ -21,355 +22,307 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
   late TextEditingController _portController;
   late TextEditingController _keyController;
 
+  int _activeProfileId = 1;
+
   @override
   void initState() {
     super.initState();
-    _servernameController = TextEditingController(text: "Laura");
-    _userController = TextEditingController(text: "ltorocordero");
-    _hostController = TextEditingController(text: "ieticloudpro.ieti.cat");
-    _portController = TextEditingController(text: "20127");
-    _keyController = TextEditingController(text: "id_rsa");
+    _servernameController = TextEditingController(text: 'Christopher');
+    _userController = TextEditingController(text: 'ccarrillocrespo');
+    _hostController = TextEditingController(text: 'ieticloudpro.ieti.cat');
+    _portController = TextEditingController(text: '20127');
+    _keyController = TextEditingController(text: 'id_rsa');
     _loadServers();
+  }
+
+  @override
+  void dispose() {
+    _servernameController.dispose();
+    _userController.dispose();
+    _hostController.dispose();
+    _portController.dispose();
+    _keyController.dispose();
+    super.dispose();
   }
 
   void _loadServers() async {
     await loadHostProfilesFromAssets();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
-  void _getCurrentFiles(String route) async {
-    await sshFileGateway.fetchDirectory(route);
-    setState(() {});
+  void _selectProfile(HostProfile server) {
+    setState(() {
+      _activeProfileId = server.id;
+      _servernameController.text = server.name;
+      _userController.text = server.username;
+      _hostController.text = server.ip;
+      _portController.text = server.port.toString();
+      _keyController.text = server.key;
+    });
+  }
+
+  Future<void> _saveProfileName() async {
+    renameHostProfile(_activeProfileId, _servernameController.text);
+    await persistHostProfiles(hostProfiles);
+    _loadServers();
+  }
+
+  Future<void> _connect() async {
+    final success = await sshFileGateway.openConnection(
+      _userController.text,
+      _hostController.text,
+      int.tryParse(_portController.text) ?? 22,
+      _keyController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      await sshFileGateway.fetchDirectory(selectedRemotePath);
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RemoteExplorerScreen(manager: sshFileGateway),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se ha podido abrir la conexión SSH')),
+      );
+    }
+  }
+
+  Widget _connectionField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    VoidCallback? onEditingComplete,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onEditingComplete: onEditingComplete,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppPalette.primary),
+        filled: true,
+        fillColor: AppPalette.background,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppPalette.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _profileTile(HostProfile server) {
+    final isActive = server.id == _activeProfileId;
+
+    return ListTile(
+      onTap: () => _selectProfile(server),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      tileColor: isActive ? AppPalette.primary.withOpacity(0.18) : Colors.transparent,
+      leading: CircleAvatar(
+        backgroundColor: isActive ? AppPalette.primary : AppPalette.sidebarCard,
+        child: Icon(Icons.dns_rounded, color: isActive ? Colors.white : Colors.white70),
+      ),
+      title: Text(
+        server.name,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      ),
+      subtitle: Text(
+        server.ip,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: Colors.white.withOpacity(0.55)),
+      ),
+      trailing: isActive
+          ? const Icon(Icons.check_circle, color: AppPalette.accent)
+          : const Icon(Icons.circle_outlined, color: Colors.white30, size: 18),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    int currentServerId = 1;
-    String currentServername = "Laura";
-    String currentUsername = "ltorocordero";
-    String currentIP = "ieticloudpro.ieti.cat";
-    String currentKey = "id_rsa";
-    int currentPort = 20127;
-
     return Scaffold(
       backgroundColor: AppPalette.background,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppPalette.primary,
-        foregroundColor: Colors.white,
-        title: Text(widget.title),
-        centerTitle: true,
-      ),
       body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 1,
-            child: Container(
-              height: double.infinity,
-              color: AppPalette.sidebar,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Conexiones",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+          Container(
+            width: 320,
+            height: double.infinity,
+            color: AppPalette.sidebar,
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.widgets_rounded, color: AppPalette.accent),
+                    SizedBox(width: 12),
+                    Text(
+                      'SSH Widget',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 34),
+                const Text(
+                  'Servidores',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    "Elige un perfil para iniciar sesión",
-                    style: TextStyle(color: Colors.white60),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Elige un perfil SSH.',
+                  style: TextStyle(color: Colors.white.withOpacity(0.58)),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: hostProfiles.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) => _profileTile(hostProfiles[index]),
                   ),
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: hostProfiles.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final server = hostProfiles[index];
-
-                        return Material(
-                          color: AppPalette.sidebarCard,
-                          borderRadius: BorderRadius.circular(16),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              setState(() {
-                                currentServerId = server.id;
-                                _servernameController.text = server.name;
-                                _userController.text = server.username;
-                                _hostController.text = server.ip;
-                                _portController.text = server.port.toString();
-                                _keyController.text = server.key;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: Colors.blueGrey[700],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.dns,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          server.name,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          server.ip,
-                                          style: const TextStyle(
-                                            color: Colors.white60,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.white54,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           Expanded(
-            flex: 2,
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(32),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Card(
+                    elevation: 0,
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: AppPalette.primary,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.terminal,
-                              color: Colors.white,
+                          const Text(
+                            'Conexión SSH',
+                            style: TextStyle(
+                              color: AppPalette.textDark,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Configura el perfil y accede al gestor de archivos remoto.',
+                            style: TextStyle(color: AppPalette.textMuted),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
                             children: [
-                              Text(
-                                "Panel de conexión",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: _connectionField(
+                                  controller: _servernameController,
+                                  label: 'Nombre del perfil',
+                                  icon: Icons.badge_outlined,
+                                  onEditingComplete: _saveProfileName,
                                 ),
                               ),
-                              SizedBox(height: 4),
-                              Text(
-                                "Acceso remoto mediante clave SSH",
-                                style: TextStyle(color: Colors.black54),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _connectionField(
+                                  controller: _userController,
+                                  label: 'Usuario',
+                                  icon: Icons.person_outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _connectionField(
+                            controller: _hostController,
+                            label: 'Servidor',
+                            icon: Icons.language_rounded,
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 160,
+                                child: _connectionField(
+                                  controller: _portController,
+                                  label: 'Puerto',
+                                  icon: Icons.numbers_rounded,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _connectionField(
+                                  controller: _keyController,
+                                  label: 'Clave privada',
+                                  icon: Icons.key_rounded,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppPalette.primary,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size.fromHeight(52),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: const Text(
+                                    'Conectar',
+                                    style: TextStyle(fontWeight: FontWeight.w800),
+                                  ),
+                                  onPressed: _connect,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.redAccent,
+                                  side: const BorderSide(color: Colors.redAccent),
+                                  minimumSize: const Size(140, 52),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.delete_outline_rounded),
+                                label: const Text('Eliminar'),
+                                onPressed: () async {},
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 32),
-                      TextField(
-                        controller: _servernameController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppPalette.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: 'Nombre del perfil',
-                          prefixIcon: const Icon(Icons.badge_outlined),
-                        ),
-                        onChanged: (value) => currentServername = value,
-                        onEditingComplete: () => {
-                          renameHostProfile(currentServerId, currentServername),
-                          persistHostProfiles(hostProfiles),
-                          _loadServers(),
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _userController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppPalette.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: 'Usuario',
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        onChanged: (value) => currentUsername = value,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _hostController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppPalette.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: 'Servidor',
-                          prefixIcon: const Icon(Icons.language),
-                        ),
-                        onChanged: (value) => currentIP = value,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _portController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppPalette.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: 'Puerto',
-                          prefixIcon: const Icon(Icons.numbers),
-                        ),
-                        onChanged: (value) =>
-                            currentPort = int.tryParse(value) ?? 22,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _keyController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: AppPalette.background,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                          labelText: 'Clave privada',
-                          prefixIcon: const Icon(Icons.key),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 52,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppPalette.primary,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.link),
-                                label: const Text('Conectar'),
-                                onPressed: () async {
-                                  bool success = await sshFileGateway.openConnection(
-                                    _userController.text,
-                                    _hostController.text,
-                                    int.tryParse(_portController.text) ?? 22,
-                                    _keyController.text,
-                                  );
-
-                                  if (success && mounted) {
-                                    await sshFileGateway.fetchDirectory(selectedRemotePath);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => RemoteExplorerScreen(
-                                          manager: sshFileGateway,
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Error al conectar"),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: SizedBox(
-                              height: 52,
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.redAccent,
-                                  side: const BorderSide(
-                                    color: Colors.redAccent,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.delete),
-                                label: const Text('Eliminar'),
-                                onPressed: () async {},
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

@@ -170,152 +170,161 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fullPath = p.posix.join(selectedRemotePath, widget.file.name);
+    final isFolder = widget.file.isDirectory;
+
     return Scaffold(
       backgroundColor: AppPalette.background,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppPalette.primary,
+        backgroundColor: AppPalette.sidebar,
         foregroundColor: Colors.white,
-        title: const Text("Detalles del elemento"),
-        centerTitle: true,
+        title: const Text('Detalles del elemento'),
+        elevation: 0,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 980),
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              elevation: 0,
               color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: widget.file.isDirectory
-                              ? Colors.amber.withOpacity(0.18)
-                              : Colors.blueAccent.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Icon(
-                          widget.file.isDirectory
-                              ? Icons.folder
-                              : Icons.insert_drive_file,
-                          size: 70,
-                          color: widget.file.isDirectory
-                              ? Colors.amber[800]
-                              : Colors.blueAccent,
-                        ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: isFolder
+                          ? AppPalette.primary.withOpacity(0.12)
+                          : AppPalette.accent.withOpacity(0.12),
+                      child: Icon(
+                        isFolder ? Icons.folder_rounded : Icons.insert_drive_file_rounded,
+                        color: isFolder ? AppPalette.primary : AppPalette.accent,
+                        size: 34,
                       ),
-                      const SizedBox(height: 24),
-                      Text(
-                        widget.file.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF101820),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: 430,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: AppPalette.background,
-                            labelText: 'Nombre del archivo',
-                            prefixIcon: const Icon(Icons.edit),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.file.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppPalette.textDark,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
-                          onSubmitted: (value) {
-                            String oldPath = p.join(
-                              selectedRemotePath,
-                              widget.file.name,
-                            );
-                            String newPath = p.join(selectedRemotePath, value);
-
-                            widget.manager.renameRemoteNode(oldPath, newPath);
-
-                            setState(() {
-                              widget.file.name = value;
-                              widget.manager.fetchDirectory(selectedRemotePath);
-                            });
-                          },
-                          controller: TextEditingController(
-                            text: widget.file.name,
+                          const SizedBox(height: 6),
+                          Text(
+                            fullPath,
+                            style: const TextStyle(color: AppPalette.textMuted),
                           ),
+                        ],
+                      ),
+                    ),
+                    if (serverType != null)
+                      Chip(
+                        label: Text(isRunning ? 'Activo' : 'Detenido'),
+                        backgroundColor: isRunning
+                            ? const Color(0xFFDCFCE7)
+                            : const Color(0xFFFFE4E6),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Acciones básicas',
+                      style: TextStyle(
+                        color: AppPalette.textDark,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppPalette.background,
+                        labelText: 'Renombrar',
+                        prefixIcon: const Icon(Icons.drive_file_rename_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
+                      onSubmitted: (value) {
+                        final oldPath = p.join(selectedRemotePath, widget.file.name);
+                        final newPath = p.join(selectedRemotePath, value);
+
+                        widget.manager.renameRemoteNode(oldPath, newPath);
+
+                        setState(() {
+                          widget.file.name = value;
+                          widget.manager.fetchDirectory(selectedRemotePath);
+                        });
+                      },
+                      controller: TextEditingController(text: widget.file.name),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
                               backgroundColor: AppPalette.primary,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 22,
-                                vertical: 16,
-                              ),
+                              minimumSize: const Size.fromHeight(50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
                             onPressed: () async {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Iniciando descarga..."),
-                                ),
+                                const SnackBar(content: Text('Iniciando descarga...')),
                               );
 
-                              String fullRemotePath = p.posix.join(
-                                selectedRemotePath,
-                                widget.file.name,
-                              );
-
-                              await widget.manager.downloadRemoteNode(fullRemotePath);
+                              await widget.manager.downloadRemoteNode(fullPath);
 
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Descarga completada"),
-                                  ),
+                                  const SnackBar(content: Text('Descarga completada')),
                                 );
                               }
                             },
-                            icon: const Icon(Icons.download),
-                            label: const Text("Descargar"),
+                            icon: const Icon(Icons.download_rounded),
+                            label: const Text('Descargar'),
                           ),
-                          const SizedBox(width: 16),
-                          OutlinedButton.icon(
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.redAccent,
                               side: const BorderSide(color: Colors.redAccent),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 22,
-                                vertical: 16,
-                              ),
+                              minimumSize: const Size.fromHeight(50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -331,189 +340,150 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
                                 });
                               });
                             },
-                            icon: const Icon(Icons.delete),
-                            label: const Text("Eliminar"),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: const Text('Eliminar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (serverType != null) ...[
+              const SizedBox(height: 18),
+              Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Proyecto ${serverType!.toUpperCase()}',
+                        style: const TextStyle(
+                          color: AppPalette.textDark,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: startServer,
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: const Text('Iniciar'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: stopServer,
+                              icon: const Icon(Icons.stop_rounded),
+                              label: const Text('Parar'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: restartServer,
+                              icon: const Icon(Icons.restart_alt_rounded),
+                              label: const Text('Reiniciar'),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 30),
-                      if (serverType != null) ...[
-                        Container(
-                          width: 430,
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            color: AppPalette.background,
-                            borderRadius: BorderRadius.circular(20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Permisos',
+                          style: TextStyle(
+                            color: AppPalette.textDark,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
                           ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "Control del proyecto",
-                                style: TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF101820),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                "Status: ${isRunning ? 'Activo' : 'Detenido'}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: isRunning ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: startServer,
-                                    icon: const Icon(Icons.play_arrow),
-                                    label: const Text("Iniciar"),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  ElevatedButton.icon(
-                                    onPressed: stopServer,
-                                    icon: const Icon(Icons.stop),
-                                    label: const Text("Parar"),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  ElevatedButton.icon(
-                                    onPressed: restartServer,
-                                    icon: const Icon(Icons.restart_alt),
-                                    label: const Text("Reiniciar"),
-                                  ),
-                                ],
-                              ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          widget.file.permissions,
+                          style: const TextStyle(
+                            color: AppPalette.textMuted,
+                            fontFamily: 'monospace',
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: permissionGroup(
+                            title: 'Propietario',
+                            buttons: [
+                              permissionButton(text: 'Lectura', index: 0, permission: '1r', activeLetter: 'r'),
+                              permissionButton(text: 'Escritura', index: 1, permission: '1w', activeLetter: 'w'),
+                              permissionButton(text: 'Ejecución', index: 2, permission: '1x', activeLetter: 'x'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: permissionGroup(
+                            title: 'Grupo',
+                            buttons: [
+                              permissionButton(text: 'Lectura', index: 3, permission: '2r', activeLetter: 'r'),
+                              permissionButton(text: 'Escritura', index: 4, permission: '2w', activeLetter: 'w'),
+                              permissionButton(text: 'Ejecución', index: 5, permission: '2x', activeLetter: 'x'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: permissionGroup(
+                            title: 'Otros',
+                            buttons: [
+                              permissionButton(text: 'Lectura', index: 6, permission: '3r', activeLetter: 'r'),
+                              permissionButton(text: 'Escritura', index: 7, permission: '3w', activeLetter: 'w'),
+                              permissionButton(text: 'Ejecución', index: 8, permission: '3x', activeLetter: 'x'),
                             ],
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 30),
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      color: AppPalette.background,
-                      borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.admin_panel_settings,
-                              color: Color(0xFF101820),
-                            ),
-                            SizedBox(width: 10),
-                            Text(
-                              "Permisos",
-                              style: TextStyle(
-                                fontSize: 21,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF101820),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.file.permissions,
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 14,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(height: 22),
-                        permissionGroup(
-                          title: "Propietario",
-                          buttons: [
-                            permissionButton(
-                              text: "Lectura",
-                              index: 0,
-                              permission: '1r',
-                              activeLetter: 'r',
-                            ),
-                            permissionButton(
-                              text: "Escritura",
-                              index: 1,
-                              permission: '1w',
-                              activeLetter: 'w',
-                            ),
-                            permissionButton(
-                              text: "Ejecución",
-                              index: 2,
-                              permission: '1x',
-                              activeLetter: 'x',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        permissionGroup(
-                          title: "Grupo",
-                          buttons: [
-                            permissionButton(
-                              text: "Lectura",
-                              index: 3,
-                              permission: '2r',
-                              activeLetter: 'r',
-                            ),
-                            permissionButton(
-                              text: "Escritura",
-                              index: 4,
-                              permission: '2w',
-                              activeLetter: 'w',
-                            ),
-                            permissionButton(
-                              text: "Ejecución",
-                              index: 5,
-                              permission: '2x',
-                              activeLetter: 'x',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        permissionGroup(
-                          title: "Otros",
-                          buttons: [
-                            permissionButton(
-                              text: "Lectura",
-                              index: 6,
-                              permission: '3r',
-                              activeLetter: 'r',
-                            ),
-                            permissionButton(
-                              text: "Escritura",
-                              index: 7,
-                              permission: '3w',
-                              activeLetter: 'w',
-                            ),
-                            permissionButton(
-                              text: "Ejecución",
-                              index: 8,
-                              permission: '3x',
-                              activeLetter: 'x',
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
-

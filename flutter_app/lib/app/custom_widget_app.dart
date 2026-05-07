@@ -9,14 +9,18 @@ class CustomWidgetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Custom SSH Widget',
+      title: 'Remote Control Hub',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppPalette.primary),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppPalette.primary,
+          brightness: Brightness.light,
+        ),
         scaffoldBackgroundColor: AppPalette.background,
+        fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const ConnectionScreen(title: 'Custom SSH Widget'),
+      home: const ConnectionScreen(title: 'Remote Control Hub'),
     );
   }
 }
