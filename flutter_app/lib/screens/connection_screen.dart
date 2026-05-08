@@ -1,3 +1,6 @@
+/// Pantalla de conexión SSH.
+/// Permite al usuario seleccionar un perfil de servidor y establecer una conexión SSH.
+
 import 'package:flutter/material.dart';
 
 import '../models/host_profile.dart';
@@ -6,6 +9,8 @@ import '../state/remote_session_state.dart';
 import '../theme/app_palette.dart';
 import 'remote_explorer_screen.dart';
 
+/// Widget de pantalla de conexión.
+/// Pantalla principal para gestionar perfiles y establecer conexiones.
 class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key, required this.title});
 
@@ -15,6 +20,8 @@ class ConnectionScreen extends StatefulWidget {
   State<ConnectionScreen> createState() => _ConnectionScreenState();
 }
 
+/// Estado de la pantalla de conexión.
+/// Gestiona los controladores de texto y las operaciones de conexión.
 class _ConnectionScreenState extends State<ConnectionScreen> {
   late TextEditingController _servernameController;
   late TextEditingController _userController;
@@ -45,11 +52,13 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     super.dispose();
   }
 
+  /// Carga los perfiles de servidores disponibles desde los assets.
   void _loadServers() async {
     await loadHostProfilesFromAssets();
     if (mounted) setState(() {});
   }
 
+  /// Selecciona un perfil de servidor y actualiza los campos de entrada.
   void _selectProfile(HostProfile server) {
     setState(() {
       _activeProfileId = server.id;
@@ -61,12 +70,15 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     });
   }
 
+  /// Guarda el nombre modificado del perfil seleccionado.
   Future<void> _saveProfileName() async {
     renameHostProfile(_activeProfileId, _servernameController.text);
     await persistHostProfiles(hostProfiles);
     _loadServers();
   }
 
+  /// Establece la conexión SSH con el servidor seleccionado.
+  /// Si la conexión es exitosa, navega a la pantalla del explorador remoto.
   Future<void> _connect() async {
     final success = await sshFileGateway.openConnection(
       _userController.text,

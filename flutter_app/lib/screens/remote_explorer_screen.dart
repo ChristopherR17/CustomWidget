@@ -1,3 +1,6 @@
+/// Pantalla del explorador de archivos remoto.
+/// Permite navegar por el sistema de archivos del servidor remoto.
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -8,6 +11,8 @@ import '../state/remote_session_state.dart';
 import '../theme/app_palette.dart';
 import 'remote_node_details_screen.dart';
 
+/// Widget de pantalla del explorador remoto.
+/// Muestra el contenido del directorio actual en el servidor remoto.
 class RemoteExplorerScreen extends StatefulWidget {
   final SshFileGateway manager;
 
@@ -17,7 +22,10 @@ class RemoteExplorerScreen extends StatefulWidget {
   State<RemoteExplorerScreen> createState() => _RemoteExplorerScreenState();
 }
 
+/// Estado del explorador remoto.
+/// Gestiona la navegación por directorios y operaciones con archivos.
 class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
+  /// Navega a una ruta especificada en el servidor remoto.
   void _navigateTo(String path) async {
     final cleanPath = p.normalize(path);
     selectedRemotePath = cleanPath;
@@ -25,6 +33,7 @@ class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Permite al usuario seleccionar un archivo local para subirlo al servidor remoto.
   Future<void> _uploadFile() async {
     final result = await FilePicker.platform.pickFiles();
 
@@ -44,6 +53,7 @@ class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
     }
   }
 
+  /// Abre la pantalla de detalles para un archivo o directorio.
   void _openDetails(int index) {
     final file = remoteNodes[index];
     Navigator.push(
@@ -60,6 +70,7 @@ class _RemoteExplorerScreenState extends State<RemoteExplorerScreen> {
     });
   }
 
+  /// Construye un widget para mostrar un nodo remoto (archivo/directorio) en la lista.
   Widget _nodeRow(int index) {
     final file = remoteNodes[index];
     final icon = file.isDirectory ? Icons.folder_rounded : Icons.insert_drive_file_rounded;

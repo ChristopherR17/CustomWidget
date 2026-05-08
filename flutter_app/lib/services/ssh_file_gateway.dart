@@ -1,3 +1,6 @@
+/// Gateway de gestión de conexiones SSH y operaciones con archivos.
+/// Proporciona funcionalidades para conectarse a servidores SSH, explorar archivos y gestionar permisos.
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -12,12 +15,16 @@ import '../state/remote_session_state.dart';
 import '../utils/remote_file_utils.dart';
 import 'app_logger.dart';
 
+/// Clase que gestiona conexiones SSH y operaciones de archivos.
+/// Proporciona métodos para conectar, explorar y manipular archivos en servidores remotos.
 class SshFileGateway {
   SSHClient? _client;
   SftpClient? _sftp;
 
   bool shouldReconnect = true;
 
+  /// Abre una conexión SSH con el servidor especificado.
+  /// Retorna true si la conexión es exitosa, false en caso contrario.
   Future<bool> openConnection(String username, String ip, int port, String key) async {
     try {
       logger.i("Attempting to connect to $ip:$port");
@@ -39,6 +46,8 @@ class SshFileGateway {
     }
   }
 
+  /// Establece o elimina un bit de permiso para un archivo remoto.
+  /// Los permisos se especifican en formato 'NX' donde N es el grupo (1-3) y X es el tipo (r/w/x).
   Future<void> setPermissionFlag(
     String filePath,
     String permission,
@@ -102,6 +111,7 @@ class SshFileGateway {
     }
   }
 
+  /// Renombra un archivo o directorio en el servidor remoto.
   Future<void> renameRemoteNode(String oldPath, String newPath) async {
     if (_client == null) return;
 
@@ -118,6 +128,8 @@ class SshFileGateway {
 
   final _remotePathContext = p.Context(style: p.Style.posix);
 
+  /// Descarga un archivo o directorio remoto.
+  /// Los directorios se descargan comprimidos como ZIP.
   Future<void> downloadRemoteNode(String remotePath) async {
     if (_client == null) return;
 
@@ -136,6 +148,7 @@ class SshFileGateway {
     }
   }
 
+  /// Sube un archivo local al servidor remoto.
   Future<void> uploadRemoteFile(String localPath, String remotePath) async {
     if (_client == null) return;
 
@@ -245,6 +258,7 @@ class SshFileGateway {
     }
   }
 
+  /// Elimina un archivo o directorio remoto.
   Future<void> deleteRemoteNode(String filePath) async {
     if (_client == null) return;
 
@@ -260,6 +274,7 @@ class SshFileGateway {
     }
   }
 
+  /// Descarga una carpeta remota como archivo ZIP.
   Future<void> downloadFolderArchive(String remotePath) async {
     if (_client == null) return;
 
@@ -342,6 +357,8 @@ class SshFileGateway {
     }
   }
 
+  /// Obtiene el listado de archivos en un directorio remoto.
+  /// Actualiza la lista global de nodos remotos.
   Future<void> fetchDirectory(String path) async {
     if (_client == null) return;
 
@@ -368,6 +385,7 @@ class SshFileGateway {
     }
   }
 
+  /// Carga la clave privada SSH desde el directorio .ssh del usuario.
   Future<String> loadPrivateKey(String file) async {
     String home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']!;
@@ -383,6 +401,8 @@ class SshFileGateway {
     }
   }
 
+  /// Detecta el tipo de tiempo de ejecución del proyecto (Node, Java, etc.).
+  /// Busca archivos típicos como package.json, pom.xml, build.gradle.
   Future<String?> detectProjectRuntime(String path) async {
     if (_client == null) return null;
 
@@ -408,6 +428,7 @@ class SshFileGateway {
     }
   }
 
+  /// Ejecuta un comando en el servidor remoto.
   Future<void> runCommand(String command) async {
     if (_client == null) return;
 
@@ -431,6 +452,8 @@ class SshFileGateway {
     }
   }
 
+  /// Verifica si el tiempo de ejecución está escuchando en su puerto predeterminado.
+  /// Retorna true si el servidor está activo, false en caso contrario.
   Future<bool> isRuntimeListening(String type, String path) async {
     if (_client == null) return false;
 

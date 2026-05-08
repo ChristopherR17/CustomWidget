@@ -1,5 +1,10 @@
+/// Utilidades para el manejo de archivos remotos.
+/// Proporciona funciones para formatear permisos y detectar tipos de archivo.
+
 import 'package:path/path.dart' as p;
 
+/// Formatea bits de permisos Unix en formato legible (rwx).
+/// Convierte un valor de modo de archivo en la representación estándar Unix de 9 caracteres.
 String formatPermissionBits(int? mode) {
   if (mode == null) return '---------';
 
@@ -18,6 +23,8 @@ String formatPermissionBits(int? mode) {
   return result;
 }
 
+/// Verifica si un archivo tiene extensión de imagen.
+/// Comprueba si la extensión del archivo coincide con las extensiones de imagen soportadas.
 bool hasImageExtension(String fileName) {
   final imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
   final extension = p.extension(fileName).toLowerCase();

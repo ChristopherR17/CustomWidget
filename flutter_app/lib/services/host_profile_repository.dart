@@ -1,3 +1,6 @@
+/// Repositorio para gestionar perfiles de hosts.
+/// Maneja la carga, guardado y manipulación de perfiles de conexión SSH desde archivos.
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +11,8 @@ import '../models/host_profile.dart';
 import '../state/remote_session_state.dart';
 import 'app_logger.dart';
 
+/// Carga los perfiles de hosts desde el archivo de assets.
+/// Lee el archivo servers.json y lo deserializa en una lista de HostProfile.
 Future<void> loadHostProfilesFromAssets() async {
   final String response = await rootBundle.loadString('assets/json/servers.json');
   final data = jsonDecode(response);
@@ -22,6 +27,8 @@ Future<void> loadHostProfilesFromAssets() async {
   hostProfiles = loadedProfiles;
 }
 
+/// Renombra un perfil de host específico.
+/// Busca el perfil por ID y actualiza su nombre.
 void renameHostProfile(int serverId, String newName) {
   final index = hostProfiles.indexWhere((server) => server.id == serverId);
   if (index == -1) return;
@@ -39,6 +46,8 @@ void renameHostProfile(int serverId, String newName) {
   logger.i('Nombre del perfil actualizado: $newName');
 }
 
+/// Guarda los perfiles de hosts en el almacenamiento de la aplicación.
+/// Serializa la lista de perfiles a JSON y los persiste en el disco.
 Future<void> persistHostProfiles(List<HostProfile> profileList) async {
   try {
     final directory = await getApplicationDocumentsDirectory();

@@ -1,3 +1,6 @@
+/// Pantalla de detalles del nodo remoto.
+/// Muestra información detallada sobre un archivo o directorio y permite modificar propiedades.
+
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -6,6 +9,8 @@ import '../services/ssh_file_gateway.dart';
 import '../state/remote_session_state.dart';
 import '../theme/app_palette.dart';
 
+/// Widget de pantalla de detalles del nodo remoto.
+/// Permite ver y modificar propiedades de archivos y directorios.
 class RemoteNodeDetailsScreen extends StatefulWidget {
   final SshFileGateway manager;
   final RemoteNode file;
@@ -20,6 +25,8 @@ class RemoteNodeDetailsScreen extends StatefulWidget {
   State<RemoteNodeDetailsScreen> createState() => _RemoteNodeDetailsScreenState();
 }
 
+/// Estado de la pantalla de detalles del nodo remoto.
+/// Gestiona la detección de tiempos de ejecución y permisos de archivos.
 class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
   double buttonPadding = 4;
   String? serverType;
@@ -34,6 +41,7 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
     }
   }
 
+  /// Detecta el tipo de tiempo de ejecución del proyecto en el directorio.
   Future<void> _detectProjectRuntime() async {
     serverType = await widget.manager.detectProjectRuntime(
       p.posix.join(selectedRemotePath, widget.file.name),
@@ -46,6 +54,7 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
     setState(() {});
   }
 
+  /// Verifica el estado actual del servidor.
   Future<void> _checkServerStatus() async {
     isRunning = await widget.manager.isRuntimeListening(
       serverType!,
@@ -55,6 +64,7 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
     setState(() {});
   }
 
+  /// Inicia el servidor (Node o Java) en el directorio actual.
   Future<void> startServer() async {
     String path = p.posix.join(selectedRemotePath, widget.file.name);
     String command;
@@ -74,6 +84,7 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
     await _checkServerStatus();
   }
 
+  /// Detiene el proceso del servidor.
   Future<void> stopServer() async {
     String process = serverType == 'node' ? 'node' : 'java';
 
@@ -82,6 +93,7 @@ class _RemoteNodeDetailsScreenState extends State<RemoteNodeDetailsScreen> {
     await _checkServerStatus();
   }
 
+  /// Reinicia el servidor (detiene e inicia nuevamente).
   Future<void> restartServer() async {
     await stopServer();
 
